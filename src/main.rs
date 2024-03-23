@@ -5,6 +5,9 @@ use std::env;
 use serde_bencode;
 
 fn decode_bencoded_value(encoded_value: &str) -> serde_json::Value {
+
+    let decoded = serde_bencode::from_str(encoded_value);
+
     // If encoded_value starts with a digit, it's a number
     if encoded_value.chars().next().unwrap().is_digit(10) {
         // Example: "5:hello" -> "hello"
@@ -14,10 +17,11 @@ fn decode_bencoded_value(encoded_value: &str) -> serde_json::Value {
         let string = &encoded_value[colon_index + 1..colon_index + 1 + number as usize];
         return serde_json::Value::String(string.to_string());
     } else if encoded_value.chars().next().unwrap() == 'i' {
-        let end_index = encoded_value.len() - 1;
-        let number_string = &encoded_value[1..end_index];
-        let number = number_string.parse::<i64>().unwrap();
-        return serde_json::Value::Number(number.into());
+        let decoded = serde_bencode::from_str(encoded_value).unwrap();
+        return serde_json::Value::Number(decoded);
+    } else if encoded_value.chars().next().unwrap() == 'l' {
+        let decoded = serde_bencode::from_str(encoded_value).unwrap();
+        return serde_json::Value::Array(decoded);
     } else {
         panic!("Unhandled encoded value: {}", encoded_value)
     }
