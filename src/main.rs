@@ -1,9 +1,9 @@
-use serde::de::value;
-use serde_json::{self, Number};
-use core::num;
-use std::env;
 
-use serde_bencode;
+use serde::de::value;
+use serde_json::{self, Map, Number};
+use std::{collections::HashMap, env};
+
+use serde_bencode::{self, value::Value};
 
 fn convert_bencode_to_json(value: serde_bencode::value::Value) -> serde_json::Value {
     match value {
@@ -23,8 +23,17 @@ fn convert_bencode_to_json(value: serde_bencode::value::Value) -> serde_json::Va
 
             serde_json::Value::Array(array)
         }
-        _ => {
-            panic!("Unknown type")
+        serde_bencode::value::Value::Dict(d) => {
+            let my_dict = d
+                .into_iter()
+                .map(|(key, value)| {
+                    (String::from_utf8(key).unwrap(),
+                    convert_bencode_to_json(value))
+                }
+            )
+            .collect();
+
+            serde_json::Value::Object(my_dict)
         }
     }
 }
