@@ -1,30 +1,38 @@
-use serde_json;
+use serde::de::value;
+use serde_json::{self, Number};
 use core::num;
 use std::env;
 
 use serde_bencode;
 
-fn decode_bencoded_value(encoded_value: &str) -> serde_json::Value {
+fn convert_bencode_to_json(value: serde_bencode::value::Value) -> serde_json::Value {
+    match value {
+        serde_bencode::value::Value::Bytes(b) => {
+            let string = String::from_utf8(b).unwrap();
 
-    let decoded = serde_bencode::from_str(encoded_value);
+            serde_json::Value::String(string)
+        }
+        serde_bencode::value::Value::Int(i) => {
+            serde_json::Value::Number(Number::from(i))
+        }
+        serde_bencode::value::Value::List(l) => {
+            let array = l
+                .into_iter()
+                .map(|item| convert_bencode_to_json(item))
+                .collect();
 
-    // If encoded_value starts with a digit, it's a number
-    if encoded_value.chars().next().unwrap().is_digit(10) {
-        // Example: "5:hello" -> "hello"
-        let colon_index = encoded_value.find(':').unwrap();
-        let number_string = &encoded_value[..colon_index];
-        let number = number_string.parse::<i64>().unwrap();
-        let string = &encoded_value[colon_index + 1..colon_index + 1 + number as usize];
-        return serde_json::Value::String(string.to_string());
-    } else if encoded_value.chars().next().unwrap() == 'i' {
-        let decoded = serde_bencode::from_str(encoded_value).unwrap();
-        return serde_json::Value::Number(decoded);
-    } else if encoded_value.chars().next().unwrap() == 'l' {
-        let decoded = serde_bencode::from_str(encoded_value).unwrap();
-        return serde_json::Value::Array(decoded);
-    } else {
-        panic!("Unhandled encoded value: {}", encoded_value)
+            serde_json::Value::Array(array)
+        }
+        _ => {
+            panic!("Unknown type")
+        }
     }
+}
+
+fn decode_bencoded_value(encoded_value: &str) -> serde_json::Value {
+    let deserialized: serde_bencode::value::Value = serde_bencode::from_str(encoded_value).unwrap();
+
+    convert_bencode_to_json(deserialized)
 }
 
 // Usage: your_bittorrent.sh decode "<encoded_value>"
