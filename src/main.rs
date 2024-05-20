@@ -1,9 +1,7 @@
+use serde_json::{self, Number};
+use std::env;
 
-use serde::de::value;
-use serde_json::{self, Map, Number};
-use std::{collections::HashMap, env};
-
-use serde_bencode::{self, value::Value};
+use serde_bencode::{self};
 
 fn convert_bencode_to_json(value: serde_bencode::value::Value) -> serde_json::Value {
     match value {
@@ -18,7 +16,7 @@ fn convert_bencode_to_json(value: serde_bencode::value::Value) -> serde_json::Va
         serde_bencode::value::Value::List(l) => {
             let array = l
                 .into_iter()
-                .map(|item| convert_bencode_to_json(item))
+                .map(convert_bencode_to_json)
                 .collect();
 
             serde_json::Value::Array(array)
